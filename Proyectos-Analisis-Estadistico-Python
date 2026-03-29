@@ -1,0 +1,59 @@
+# PROYECTO: OPTIMIZACIÓN Y DEPURACIÓN DE REGISTROS LOGÍSTICOS
+# OBJETIVO: 
+# 1. Filtrar personal activo ("PRESENTE").
+# 2. Normalización de texto (Limpieza de espacios y formato).
+# 3. Estructuración jerárquica de ubicaciones físicas.
+
+import pandas as pd
+
+# 1. Cargar el archivo de datos masivos
+# Se utiliza una base genérica para demostrar la lógica de procesamiento
+file_name = 'base_datos_logistica.xlsx'
+
+try:
+    # Leemos la pestaña principal indicando el encabezado correcto
+    df = pd.read_excel(file_name, sheet_name='DATA_MAESTRA', header=5)
+
+    # 2. Normalización de campos de texto
+    # Eliminamos espacios en blanco al inicio/final y estandarizamos a mayúsculas
+    df['NOMBRE_COMPLETO'] = df['NOMBRE_COMPLETO'].astype(str).str.strip().str.upper()
+    df['ESTADO_ACTUAL'] = df['ESTADO_ACTUAL'].astype(str).str.upper()
+
+    # 3. Segmentación: Filtrar solo personal con estado "PRESENTE"
+    df_activos = df[df['ESTADO_ACTUAL'].str.contains('PRESENTE', na=False)].copy()
+
+    # 4. Control de Integridad: Eliminación de registros duplicados
+    # Garantizamos que cada ID sea único en el reporte final
+    df_unicos = df_activos.drop_duplicates(subset=['NUMERO_DOCUMENTO'], keep='first')
+
+    # 5. Selección de columnas estratégicas y ordenamiento jerárquico
+    # El orden lógico facilita la auditoría física en las instalaciones
+    columnas_interes = [
+        'NOMBRE_COMPLETO',
+        'NUMERO_DOCUMENTO',
+        'ZONA_LOGISTICA',
+        'SECCION',
+        'NIVEL',
+        'UBICACION_ESPECIFICA'
+    ]
+    
+    lista_final = df_unicos[columnas_interes].sort_values(by=['ZONA_LOGISTICA', 'SECCION', 'NIVEL', 'UBICACION_ESPECIFICA'])
+
+    # 6. Exportación de resultados
+    lista_final.to_excel('REPORTE_NOMINA_ORDENADA.xlsx', index=False)
+    
+    print("-------------- PROCESO EXITOSO --------------")
+    print(f"Total registros procesados: {len(df_activos)}")
+    print(f"Total registros únicos validados: {len(df_unicos)}")
+    print(f"Registros redundantes eliminados: {len(df_activos) - len(df_unicos)}")
+
+except FileNotFoundError:
+    print("Error: El archivo de origen no se encuentra. Verifique el nombre.")
+except PermissionError:
+    print("Error: El archivo de destino está abierto. Ciérrelo para guardar los cambios.")
+except Exception as e:
+    print(f"Ocurrió un error inesperado: {e}")
+
+# Vista previa para verificación técnica
+print("\nVista previa del reporte generado:")
+print(lista_final.head(10))
